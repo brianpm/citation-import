@@ -1,0 +1,6 @@
+# Citation Import configuration
+# Copy to ~/.citation_import.toml and edit as needed
+
+target_bib = "~/Dropbox/refs.bib"   # adjust to wherever your master .bib lives
+watch_dirs = ["~/Downloads"]
+log_file = "~/.citation_import.log"

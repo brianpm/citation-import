@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "citation_import"
+version = "0.1.0"
+description = "Watch Downloads and import BibTeX/RIS/ENW references into a master .bib file"
+requires-python = ">=3.10"
+dependencies = [
+    "bibtexparser>=1.4",
+    "rispy>=0.9",
+    "watchdog>=4.0",
+    "send2trash>=1.8",
+]
+
+[project.scripts]
+import_citation = "citation_import.cli:main"
+watch_downloads = "citation_import.watcher:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
