@@ -189,6 +189,32 @@ All paths support `~` expansion.
 
 ---
 
+## Troubleshooting
+
+**Notifications don't appear after install**
+
+macOS requires notification permission for `osascript` / Script Editor. Go to **System Settings → Notifications → Script Editor** and enable notifications. This prompt appears automatically on first use on most systems, but on some macOS versions you may need to enable it manually.
+
+**`target_bib` doesn't exist yet**
+
+If you're starting a fresh bibliography rather than importing into an existing one, create an empty `.bib` file first:
+
+```bash
+echo '%% Bibliography' > ~/path/to/refs.bib
+```
+
+citation-import will not create the file itself — it treats a missing target as an error to avoid silently writing to the wrong location.
+
+**`import_citation` picks up the wrong Python**
+
+`install.sh` uses `which python3` to find Python. If your system has multiple Python installations, make sure the right one is active before running the installer, or edit the generated plist at `~/Library/LaunchAgents/local.citation-import.plist` to point at the correct interpreter.
+
+**File is imported but BibDesk doesn't show it**
+
+BibDesk watches for external file changes and will prompt to reload. If it doesn't, use **File → Revert** to pick up the appended entry.
+
+---
+
 ## Running the tests
 
 ```bash

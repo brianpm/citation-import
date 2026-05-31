@@ -33,7 +33,8 @@ class ImportResult:
         return not self.errors
 
 
-def _load_bib(path: str) -> bibtexparser.bibdatabase.BibDatabase:
+def _load_bib_for_reading(path: str) -> bibtexparser.bibdatabase.BibDatabase:
+    """Load a .bib file for duplicate/key checking only. Never written back."""
     parser = BibTexParser(common_strings=True)
     parser.customization = convert_to_unicode
     parser.ignore_nonstandard_types = False
@@ -41,16 +42,32 @@ def _load_bib(path: str) -> bibtexparser.bibdatabase.BibDatabase:
         return bibtexparser.load(f, parser=parser)
 
 
-def _write_bib_atomically(db: bibtexparser.bibdatabase.BibDatabase, target_path: str) -> None:
+def _format_new_entries(entries: list[dict]) -> str:
+    """Render a list of new entries as BibTeX text (new entries only, not the whole file)."""
+    db = bibtexparser.bibdatabase.BibDatabase()
+    db.entries = entries
     writer = BibTexWriter()
     writer.indent = "\t"
     writer.comma_first = False
+    return bibtexparser.dumps(db, writer)
 
+
+def _append_entries_atomically(new_text: str, target_path: str) -> None:
+    """Append *new_text* to *target_path* without touching existing content.
+
+    Writes to a temp file in the same directory, then atomically replaces the
+    target so the file is never left in a partial state.
+    """
     target = Path(target_path)
+    existing = target.read_bytes()
+
     tmp_fd, tmp_path = tempfile.mkstemp(dir=target.parent, suffix=".bib.tmp")
     try:
-        with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
-            bibtexparser.dump(db, f, writer)
+        with os.fdopen(tmp_fd, "wb") as f:
+            f.write(existing)
+            if not existing.endswith(b"\n"):
+                f.write(b"\n")
+            f.write(new_text.encode("utf-8"))
         os.replace(tmp_path, target_path)
     except Exception:
         try:
@@ -62,9 +79,7 @@ def _write_bib_atomically(db: bibtexparser.bibdatabase.BibDatabase, target_path:
 
 def _today_str() -> str:
     now = datetime.now()
-    # BibDesk format: 2026-05-31 14:30:00 -0600
     offset = datetime.now().astimezone().strftime("%z")
-    offset_fmt = f"{offset[:3]}:{offset[3:]}"
     return now.strftime(f"%Y-%m-%d %H:%M:%S {offset}")
 
 
@@ -74,6 +89,9 @@ def import_to_bib(
     dry_run: bool = False,
 ) -> ImportResult:
     """Parse *source_path*, deduplicate against *target_bib_path*, and append new entries.
+
+    Existing content in *target_bib_path* is never rewritten — only new entries
+    are appended, preserving all formatting, entry order, and non-standard types.
 
     With *dry_run=True*, reports what would be imported without writing anything.
     """
@@ -92,9 +110,9 @@ def import_to_bib(
         result.errors.append("No entries found in source file")
         return result
 
-    # --- Load existing bibliography ---
+    # --- Load existing bibliography (read-only: dedup + key collision checks) ---
     try:
-        db = _load_bib(target_bib_path)
+        db = _load_bib_for_reading(target_bib_path)
     except Exception as exc:
         result.errors.append(f"Could not read target bib: {exc}")
         return result
@@ -131,14 +149,13 @@ def import_to_bib(
     if dry_run:
         return result
 
-    # --- Append and write atomically ---
+    # --- Append only new entries; existing file content is untouched ---
     try:
-        db.entries.extend(new_entries)
-        _write_bib_atomically(db, target_bib_path)
+        new_text = _format_new_entries(new_entries)
+        _append_entries_atomically(new_text, target_bib_path)
     except Exception as exc:
         result.errors.append(f"Write error: {exc}")
-        # Roll back from result.imported since we failed
-        result.errors.append(f"refs.bib was NOT modified (write failed safely)")
+        result.errors.append("refs.bib was NOT modified (write failed safely)")
         result.imported.clear()
 
     return result

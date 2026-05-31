@@ -100,7 +100,6 @@ def main():
     )
 
     log.info("Citation watcher starting. Target: %s", target_bib)
-    log.info("Watching: %s", watch_dirs)
 
     observer = Observer()
     handler = _ReferenceHandler(target_bib)
