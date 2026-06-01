@@ -22,6 +22,7 @@ log = logging.getLogger(__name__)
 class _ReferenceHandler(FileSystemEventHandler):
     def __init__(self, target_bib: str):
         self._target = target_bib
+        self._processing = set()
 
     def _handle(self, path: str) -> None:
         p = Path(path)
@@ -30,6 +31,17 @@ class _ReferenceHandler(FileSystemEventHandler):
         if not p.exists():
             return
 
+        path_str = str(p.resolve())
+        if path_str in self._processing:
+            return
+        self._processing.add(path_str)
+
+        try:
+            self._process_file(p, path_str)
+        finally:
+            self._processing.discard(path_str)
+
+    def _process_file(self, p: Path, path_str: str) -> None:
         log.info("Detected reference file: %s", p)
         # Wait briefly to ensure the file is fully written
         time.sleep(1.0)
@@ -37,7 +49,7 @@ class _ReferenceHandler(FileSystemEventHandler):
         if not p.exists():
             return
 
-        result = import_to_bib(path, self._target)
+        result = import_to_bib(str(p), self._target)
 
         if result.errors:
             msg = "; ".join(result.errors)
@@ -58,8 +70,8 @@ class _ReferenceHandler(FileSystemEventHandler):
                 body=f"Added to {Path(self._target).name}",
             )
             try:
-                send2trash(path)
-                log.info("Moved to Trash: %s", path)
+                send2trash(str(p))
+                log.info("Moved to Trash: %s", p)
             except Exception as exc:
                 log.warning("Could not move to Trash: %s", exc)
 
@@ -71,7 +83,7 @@ class _ReferenceHandler(FileSystemEventHandler):
                 body="Already in refs.bib — moved to Trash",
             )
             try:
-                send2trash(path)
+                send2trash(str(p))
             except Exception as exc:
                 log.warning("Could not move to Trash: %s", exc)
 
@@ -90,14 +102,19 @@ def main():
     target_bib = cfg["target_bib"]
     watch_dirs = cfg["watch_dirs"]
 
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(message)s",
-        handlers=[
-            logging.FileHandler(log_file),
-            logging.StreamHandler(sys.stdout),
-        ],
-    )
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+
+    # Clear any existing handlers to avoid duplicates
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
+
+    formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+
+    # Only add file handler; launchd captures stdout/stderr from the plist config
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setFormatter(formatter)
+    root_logger.addHandler(file_handler)
 
     log.info("Citation watcher starting. Target: %s", target_bib)
 
