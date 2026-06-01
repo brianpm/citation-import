@@ -62,11 +62,12 @@ class _ReferenceHandler(FileSystemEventHandler):
             return
 
         if result.imported:
-            keys = ", ".join(result.imported)
-            log.info("Imported %d entry/entries: %s", len(result.imported), keys)
+            n = len(result.imported)
+            subtitle = result.imported[0] if n == 1 else f"{n} citations"
+            log.info("Imported %d entry/entries: %s", n, ", ".join(result.imported))
             notify(
                 "Citation Imported",
-                subtitle=keys,
+                subtitle=subtitle,
                 body=f"Added to {Path(self._target).name}",
             )
             try:

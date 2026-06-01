@@ -97,6 +97,23 @@ def test_dry_run_does_not_write(empty_bib):
     assert empty_bib.read_text() == original  # file unchanged
 
 
+def test_import_multi_bib_all_new(empty_bib):
+    result = import_to_bib(TESTS_DIR / "multi.bib", empty_bib)
+    assert not result.errors, result.errors
+    assert len(result.imported) == 3
+    text = empty_bib.read_text()
+    for key in result.imported:
+        assert key in text
+
+
+def test_import_multi_bib_partial_duplicate(tmp_bib):
+    # tmp_bib already contains Smith:2022 (DOI 10.1234/jclim.2022.test)
+    result = import_to_bib(TESTS_DIR / "multi.bib", tmp_bib)
+    assert not result.errors, result.errors
+    assert len(result.imported) == 2
+    assert len(result.skipped) == 1
+
+
 def test_import_twice_second_is_duplicate(empty_bib):
     r1 = import_to_bib(TESTS_DIR / "sample.ris", empty_bib)
     assert r1.imported

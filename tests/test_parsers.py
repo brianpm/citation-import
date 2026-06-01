@@ -41,6 +41,11 @@ def test_parse_enw():
     assert e["doi"] == "10.1029/2021GL095000"
 
 
+def test_parse_bib_multi():
+    entries = parse_file(TESTS_DIR / "multi.bib")
+    assert len(entries) == 3
+
+
 def test_unsupported_extension():
     from citation_import.parsers import parse_file
     with pytest.raises(ValueError, match="Unsupported"):
