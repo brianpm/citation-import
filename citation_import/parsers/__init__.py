@@ -8,6 +8,7 @@ from .endnote import parse as _parse_enw
 
 _PARSERS = {
     ".bib": _parse_bib,
+    ".bibtex": _parse_bib,
     ".ris": _parse_ris,
     ".enw": _parse_enw,
 }
