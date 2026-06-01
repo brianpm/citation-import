@@ -67,8 +67,9 @@ bash install.sh
 ```
 
 This will:
-- Install Python dependencies (`pip install -r requirements.txt`)
-- Generate a `launchd` plist tailored to your Python path and install location
+- Create an isolated Python virtual environment in `.venv/` (avoiding PEP 668 restrictions on system Python)
+- Install Python dependencies (`pip install -r requirements.txt`) into that venv
+- Generate a `launchd` plist tailored to your venv Python path and install location
 - Load the watcher as a background login agent (starts immediately and on every login)
 
 To verify it is running:

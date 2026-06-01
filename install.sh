@@ -5,17 +5,23 @@
 set -euo pipefail
 
 INSTALL_DIR="$(cd "$(dirname "$0")" && pwd)"
-PYTHON="$(command -v python3)"
+SYSTEM_PYTHON="$(command -v python3)"
 HOME_DIR="$HOME"
+VENV_DIR="$INSTALL_DIR/.venv"
+PYTHON="$VENV_DIR/bin/python"
 PYTHON_DIR="$(dirname "$PYTHON")"
 PLIST_TEMPLATE="$INSTALL_DIR/launchd/com.citation-import.plist.template"
 PLIST_DEST="$HOME/Library/LaunchAgents/local.citation-import.plist"
 
 echo "==> citation-import installer"
 echo "    Install dir : $INSTALL_DIR"
-echo "    Python      : $PYTHON"
 echo "    Plist dest  : $PLIST_DEST"
 echo ""
+
+# --- Create virtual environment ---
+echo "==> Creating virtual environment..."
+"$SYSTEM_PYTHON" -m venv "$VENV_DIR"
+echo "    Created at $VENV_DIR"
 
 # --- Install Python dependencies ---
 echo "==> Installing Python dependencies..."
